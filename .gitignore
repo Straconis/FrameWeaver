@@ -1,0 +1,8 @@
+# Build output
+/target/
+/dist/
+
+# Local tooling, design drafts and downloads
+.claude/
+branding/concepts/
+third_party/
