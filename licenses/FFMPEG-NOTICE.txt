@@ -1,0 +1,19 @@
+FrameWeaver includes a copy of FFmpeg
+=====================================
+
+FrameWeaver uses FFmpeg (https://ffmpeg.org) to make videos. FFmpeg is a separate program that
+FrameWeaver runs; it is included so that nothing else needs installing.
+
+The included FFmpeg is version 8.1, built by the BtbN/FFmpeg-Builds project:
+  https://github.com/BtbN/FFmpeg-Builds
+
+That build is licensed under the GNU General Public License version 3 (GPL-3.0) because it
+includes GPL components such as x264 and x265. Its full license text is in FFMPEG-LICENSE.txt.
+
+Source code
+  FFmpeg:        https://github.com/FFmpeg/FFmpeg/tree/release/8.1
+  Build scripts: https://github.com/BtbN/FFmpeg-Builds
+  Releases:      https://github.com/BtbN/FFmpeg-Builds/releases
+
+FrameWeaver itself is licensed under the MIT License (see LICENSE). FFmpeg's license applies to
+the ffmpeg program only.

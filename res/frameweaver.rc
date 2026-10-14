@@ -1,0 +1,25 @@
+1 ICON "frameweaver.ico"
+
+1 VERSIONINFO
+FILEVERSION 0,1,0,0
+PRODUCTVERSION 0,1,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"
+    BEGIN
+      VALUE "CompanyName", "Straconis"
+      VALUE "FileDescription", "FrameWeaver"
+      VALUE "FileVersion", "0.1.0"
+      VALUE "InternalName", "frameweaver"
+      VALUE "LegalCopyright", "Copyright (c) 2026 Straconis. MIT License."
+      VALUE "OriginalFilename", "FrameWeaver.exe"
+      VALUE "ProductName", "FrameWeaver"
+      VALUE "ProductVersion", "0.1.0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END
