@@ -14,10 +14,12 @@ pub struct Settings {
     pub format: Format,
     pub quality: Quality,
     pub mode: Mode,
-    /// The total length as typed, for example "00:02:00".
-    pub length: String,
-    /// Seconds per picture as typed, for example "0.5".
-    pub per_picture: String,
+    /// The total length, in separate hours, minutes and seconds boxes.
+    pub length_hours: u32,
+    pub length_minutes: u32,
+    pub length_seconds: u32,
+    /// Seconds each picture shows, in "time per picture" mode.
+    pub per_picture: f64,
     pub fps: u32,
     pub size: Size,
     pub custom_size: (u32, u32),
@@ -41,8 +43,10 @@ impl Default for Settings {
             format: Format::Mp4H264,
             quality: Quality::Balanced,
             mode: Mode::TotalLength,
-            length: "00:01:00".into(),
-            per_picture: "0.5".into(),
+            length_hours: 0,
+            length_minutes: 1,
+            length_seconds: 0,
+            per_picture: 0.5,
             fps: 30,
             size: Size::SameAsPictures,
             custom_size: (1920, 1080),
@@ -57,6 +61,15 @@ impl Default for Settings {
 }
 
 impl Settings {
+    /// The total length from the three boxes.
+    pub fn length(&self) -> std::time::Duration {
+        std::time::Duration::from_secs(
+            u64::from(self.length_hours) * 3600
+                + u64::from(self.length_minutes) * 60
+                + u64::from(self.length_seconds),
+        )
+    }
+
     fn path() -> Option<PathBuf> {
         Some(
             dirs::config_dir()?
@@ -89,9 +102,9 @@ mod tests {
 
     #[test]
     fn missing_fields_fall_back_to_defaults() {
-        let s: Settings = serde_json::from_str(r#"{"fps": 60, "length": "00:05:00"}"#).unwrap();
+        let s: Settings = serde_json::from_str(r#"{"fps": 60, "length_minutes": 5}"#).unwrap();
         assert_eq!(s.fps, 60);
-        assert_eq!(s.length, "00:05:00");
+        assert_eq!(s.length(), std::time::Duration::from_secs(300));
         assert_eq!(s.format, Format::Mp4H264);
     }
 

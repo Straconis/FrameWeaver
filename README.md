@@ -16,14 +16,14 @@ Windows may show a SmartScreen warning because the app isn't code-signed yet. Ch
 ## How to use it
 
 1. **Choose folder…** for a folder of pictures, such as a SnapLapse recording. **Choose file or ZIP…** takes a picture or a ZIP; for a split ZIP, pick any part.
-2. Type the **video length** as hours:minutes:seconds, for example `00:02:00`, or switch to **time per picture**.
+2. Set the **video length** in the hours, minutes and seconds boxes, or switch to **time per picture**.
 3. Pick the **size**, **shape** and how pictures that don't fit are handled, then the **format** and **quality**.
 4. Check the summary, which shows the frame math, and press **Create video**.
 
 ## Features
 
 - **Open pictures your way:** a folder of pictures, or a SnapLapse recording folder or ZIP, including split ZIPs (part 1, part 2…). Pictures are taken in natural order: 2 comes before 10.
-- **Pick the length as HH:MM:SS.** FrameWeaver works out how long each picture stays on screen, spreads the frames evenly, and shows the math before you start. You can set a time per picture instead.
+- **Pick the exact length** in hours, minutes and seconds. FrameWeaver works out how long each picture stays on screen, spreads the frames evenly, and shows the math before you start. You can set a time per picture instead.
 - **Formats:**
   - MP4 (H.264), which plays everywhere.
   - MP4 (H.265), at about half the size.

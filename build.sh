@@ -65,7 +65,7 @@ build_windows() {
     cp third_party/ffmpeg/windows/ffmpeg.exe dist/windows/FrameWeaver/
     add_licenses dist/windows/FrameWeaver third_party/ffmpeg/windows/LICENSE.txt
     in_container "makensis -V2 -DVERSION=$VERSION installer/frameweaver.nsi"
-    (cd dist/windows && zip -q -r "../FrameWeaver-$VERSION-windows-portable.zip" FrameWeaver)
+    in_container "cd dist/windows && zip -q -r ../FrameWeaver-$VERSION-windows-portable.zip FrameWeaver"
     rm -rf dist/windows
     echo "Built dist/FrameWeaver-$VERSION-setup.exe and dist/FrameWeaver-$VERSION-windows-portable.zip"
 }

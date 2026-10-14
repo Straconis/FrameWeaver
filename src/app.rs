@@ -121,22 +121,18 @@ impl App {
             return Err("Choose some pictures first.".into());
         }
         match self.settings.mode {
-            Mode::TotalLength => timing::parse_hms(&self.settings.length)
-                .map(|length| timing::plan_total(count, length, self.settings.fps))
-                .ok_or_else(|| {
-                    "Type the length as hours:minutes:seconds, for example 00:02:00.".into()
-                }),
-            Mode::PerPicture => self
-                .settings
-                .per_picture
-                .trim()
-                .parse::<f64>()
-                .ok()
-                .filter(|s| *s > 0.0 && *s <= 3600.0)
-                .map(|s| {
-                    timing::plan_per_picture(count, Duration::from_secs_f64(s), self.settings.fps)
-                })
-                .ok_or_else(|| "Type the seconds per picture, for example 0.5.".into()),
+            Mode::TotalLength => {
+                let length = self.settings.length();
+                if length.is_zero() {
+                    return Err("Set a video length longer than zero.".into());
+                }
+                Ok(timing::plan_total(count, length, self.settings.fps))
+            }
+            Mode::PerPicture => Ok(timing::plan_per_picture(
+                count,
+                Duration::from_secs_f64(self.settings.per_picture.clamp(0.01, 3600.0)),
+                self.settings.fps,
+            )),
         }
     }
 
@@ -283,21 +279,32 @@ impl App {
                     Mode::TotalLength => {
                         ui.label("Video length");
                         ui.horizontal(|ui| {
-                            ui.add(
-                                egui::TextEdit::singleline(&mut self.settings.length)
-                                    .desired_width(90.0)
-                                    .hint_text("00:02:00"),
-                            );
-                            ui.label(RichText::new("hours:minutes:seconds").weak());
+                            // One box each for hours, minutes and seconds. Type a number or drag.
+                            let boxes = [
+                                (&mut self.settings.length_hours, 99, "hours"),
+                                (&mut self.settings.length_minutes, 59, "minutes"),
+                                (&mut self.settings.length_seconds, 59, "seconds"),
+                            ];
+                            for (value, max, unit) in boxes {
+                                ui.add(
+                                    egui::DragValue::new(value)
+                                        .range(0..=max)
+                                        .speed(0.1)
+                                        .min_decimals(0),
+                                );
+                                ui.label(RichText::new(unit).weak());
+                                ui.add_space(4.0);
+                            }
                         });
                     }
                     Mode::PerPicture => {
                         ui.label("Each picture");
                         ui.horizontal(|ui| {
                             ui.add(
-                                egui::TextEdit::singleline(&mut self.settings.per_picture)
-                                    .desired_width(90.0)
-                                    .hint_text("0.5"),
+                                egui::DragValue::new(&mut self.settings.per_picture)
+                                    .range(0.01..=3600.0)
+                                    .speed(0.05)
+                                    .max_decimals(2),
                             );
                             ui.label(RichText::new("seconds").weak());
                         });
