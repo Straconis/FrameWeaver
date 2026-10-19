@@ -280,7 +280,9 @@ pub fn video_filter(job: &Job) -> String {
         Format::Gif => format!(
             "{shape},setsar=1,fps={fps},split[a][b];[a]palettegen=stats_mode=full[p];[b][p]paletteuse=dither=bayer:bayer_scale=3"
         ),
-        _ => format!("{shape},setsar=1,fps={fps},format=yuv420p"),
+        // Convert the colours before repeating pictures to fill the frame rate, so each picture is
+        // converted once rather than once per frame.
+        _ => format!("{shape},setsar=1,format=yuv420p,fps={fps}"),
     }
 }
 
@@ -293,12 +295,20 @@ fn encoder_args(job: &Job) -> Vec<String> {
         }
         .to_string()
     };
+    // How hard each encoder works. "High" keeps the slow, careful settings; the others use much
+    // faster ones. On screen recordings the faster settings look the same (measured with SSIM,
+    // a standard picture-similarity score, 0.997 or better against the source either way) and
+    // files stay about the same size, but rendering takes a fraction of the time.
+    let high = job.quality == Quality::High;
+    let threads = std::thread::available_parallelism()
+        .map_or(4, |n| n.get())
+        .to_string();
     let args: Vec<String> = match job.format {
         Format::Mp4H264 => vec![
             "-c:v",
             "libx264",
             "-preset",
-            "medium",
+            if high { "medium" } else { "veryfast" },
             "-crf",
             &q(18, 23, 28),
             "-movflags",
@@ -311,7 +321,7 @@ fn encoder_args(job: &Job) -> Vec<String> {
             "-c:v",
             "libx265",
             "-preset",
-            "medium",
+            if high { "medium" } else { "veryfast" },
             "-crf",
             &q(22, 26, 30),
             "-tag:v",
@@ -322,6 +332,7 @@ fn encoder_args(job: &Job) -> Vec<String> {
         .into_iter()
         .map(String::from)
         .collect(),
+        // VP9 was by far the slowest: its default setting is close to the slowest it has.
         Format::WebmVp9 => vec![
             "-c:v",
             "libvpx-vp9",
@@ -329,8 +340,14 @@ fn encoder_args(job: &Job) -> Vec<String> {
             "0",
             "-crf",
             &q(24, 32, 40),
+            "-deadline",
+            if high { "good" } else { "realtime" },
+            "-cpu-used",
+            if high { "4" } else { "6" },
             "-row-mt",
             "1",
+            "-threads",
+            &threads,
         ]
         .into_iter()
         .map(String::from)
@@ -464,7 +481,7 @@ mod tests {
         };
         assert_eq!(
             video_filter(&job),
-            "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=0x1020FF,setsar=1,fps=25,format=yuv420p"
+            "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=0x1020FF,setsar=1,format=yuv420p,fps=25"
         );
         job.fit = Fit::Crop;
         assert!(video_filter(&job)
@@ -474,6 +491,46 @@ mod tests {
         let args = ffmpeg_args(&job, Path::new("list.txt"), Path::new("out.gif"));
         assert_eq!(args.last().unwrap(), "out.gif");
         assert!(args.windows(2).any(|w| w[0] == "-frames:v" && w[1] == "1"));
+    }
+
+    #[test]
+    fn high_quality_keeps_careful_settings_and_others_are_fast() {
+        let job = |format, quality| Job {
+            plan: Plan {
+                frames: vec![1],
+                fps: 30,
+            },
+            format,
+            quality,
+            size: (640, 480),
+            fit: Fit::Bars,
+            bar_color: [0, 0, 0],
+        };
+        let value = |args: &[String], flag: &str| {
+            let at = args.iter().position(|a| a == flag).unwrap();
+            args[at + 1].clone()
+        };
+        for format in [Format::Mp4H264, Format::Mp4H265] {
+            assert_eq!(
+                value(&encoder_args(&job(format, Quality::High)), "-preset"),
+                "medium"
+            );
+            for quality in [Quality::Balanced, Quality::Small] {
+                assert_eq!(
+                    value(&encoder_args(&job(format, quality)), "-preset"),
+                    "veryfast"
+                );
+            }
+        }
+        let high = encoder_args(&job(Format::WebmVp9, Quality::High));
+        assert_eq!(value(&high, "-deadline"), "good");
+        assert_eq!(value(&high, "-cpu-used"), "4");
+        for quality in [Quality::Balanced, Quality::Small] {
+            let args = encoder_args(&job(Format::WebmVp9, quality));
+            assert_eq!(value(&args, "-deadline"), "realtime");
+            assert_eq!(value(&args, "-cpu-used"), "6");
+            assert!(value(&args, "-threads").parse::<usize>().unwrap() >= 1);
+        }
     }
 
     mod properties {

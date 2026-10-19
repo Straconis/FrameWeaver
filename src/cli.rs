@@ -144,6 +144,9 @@ fn make_video(args: &[String]) -> Result<(), String> {
         return Err(format!("This FFmpeg can't make {}", format.label()));
     }
     let pictures = Arc::new(crate::input::load(&input)?);
+    if !pictures.missing_parts.is_empty() {
+        eprintln!("Warning: {}", pictures.missing_parts_warning());
+    }
     let plan = match per_picture {
         Some(each) => timing::plan_per_picture(pictures.files.len(), each, fps),
         None => timing::plan_total(pictures.files.len(), length, fps),

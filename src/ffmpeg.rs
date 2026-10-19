@@ -438,11 +438,17 @@ mod tests {
         }
         let pictures = Arc::new(crate::input::load(&dir).unwrap());
         let out = crate::test_dir("encode-out");
-        for (format, fit) in [
+        let cases = [
             (Format::Mp4H264, Fit::Bars),
+            (Format::Mp4H265, Fit::Bars),
             (Format::WebmVp9, Fit::Crop),
             (Format::Gif, Fit::Stretch),
-        ] {
+        ];
+        // Every format, with both the careful (High) and the fast encoder settings.
+        let cases = cases
+            .into_iter()
+            .flat_map(|(format, fit)| [Quality::High, Quality::Small].map(|q| (format, fit, q)));
+        for (format, fit, quality) in cases {
             if !ffmpeg.supports(format) {
                 continue;
             }
@@ -456,19 +462,23 @@ mod tests {
             let job = Job {
                 plan,
                 format,
-                quality: Quality::Small,
+                quality,
                 size: (256, 144),
                 fit,
                 bar_color: [0, 0, 0],
             };
             let target = free_name(&out, "video", format.extension());
             let state = Encoding::start(&ffmpeg, pictures.clone(), job, target.clone()).wait();
-            assert_eq!(state, State::Done(target.clone()), "{format:?}");
-            assert_eq!(probe(&ffmpeg, &target), (50, 256, 144), "{format:?}");
+            assert_eq!(state, State::Done(target.clone()), "{format:?} {quality:?}");
+            assert_eq!(
+                probe(&ffmpeg, &target),
+                (50, 256, 144),
+                "{format:?} {quality:?}"
+            );
             assert_eq!(
                 pictures_shown(&ffmpeg, &target),
                 expected,
-                "{format:?}: wrong picture in some frame"
+                "{format:?} {quality:?}: wrong picture in some frame"
             );
         }
         let leftovers: Vec<_> = std::fs::read_dir(&out)

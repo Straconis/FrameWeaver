@@ -2,7 +2,9 @@
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 mod app;
+mod cleanup;
 mod cli;
+mod dialog;
 mod ffmpeg;
 mod input;
 mod settings;

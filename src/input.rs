@@ -16,8 +16,28 @@ pub struct Pictures {
     pub name: String,
     /// The size of the first picture, used for "same as pictures" sizes.
     pub first_size: Option<(u32, u32)>,
+    /// For a split ZIP, any part numbers that aren't in the folder, such as part 2 of parts 1
+    /// and 3. The video is still made from the parts that are there.
+    pub missing_parts: Vec<u32>,
     /// Where ZIP contents were unpacked. Deleted when this is dropped.
     _unpacked: Option<TempFolder>,
+}
+
+impl Pictures {
+    /// Explains which parts of a split ZIP are missing, if any.
+    pub fn missing_parts_warning(&self) -> String {
+        let list: Vec<String> = self.missing_parts.iter().map(u32::to_string).collect();
+        match list.as_slice() {
+            [] => String::new(),
+            [one] => format!(
+                "Part {one} of this split ZIP isn't in the folder, so its pictures are left out."
+            ),
+            many => format!(
+                "Parts {} of this split ZIP aren't in the folder, so their pictures are left out.",
+                many.join(", ")
+            ),
+        }
+    }
 }
 
 impl std::fmt::Debug for Pictures {
@@ -40,6 +60,9 @@ fn is_zip(path: &Path) -> bool {
 
 /// Loads the pictures from a folder, a picture file, or a ZIP file.
 pub fn load(path: &Path) -> Result<Pictures, String> {
+    // FFmpeg reads the picture list from a temporary folder, so every path must be absolute.
+    let path = &std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
+    let mut missing_parts = Vec::new();
     let (files, name, unpacked) = if path.is_dir() {
         (
             pictures_in(path).map_err(|e| format!("Couldn't read the folder: {e}"))?,
@@ -48,6 +71,7 @@ pub fn load(path: &Path) -> Result<Pictures, String> {
         )
     } else if is_zip(path) {
         let parts = zip_parts(path);
+        missing_parts = missing_part_numbers(&parts);
         let folder =
             TempFolder::new().map_err(|e| format!("Couldn't make a temporary folder: {e}"))?;
         for (i, part) in parts.iter().enumerate() {
@@ -69,6 +93,7 @@ pub fn load(path: &Path) -> Result<Pictures, String> {
         files,
         name,
         first_size,
+        missing_parts,
         _unpacked: unpacked,
     })
 }
@@ -130,6 +155,19 @@ pub fn zip_parts(zip: &Path) -> Vec<PathBuf> {
         .collect();
     parts.sort_by_key(|(n, _)| *n);
     parts.into_iter().map(|(_, p)| p).collect()
+}
+
+/// Part numbers missing from a run of split ZIP parts: for parts 1, 2 and 5, that's 3 and 4.
+/// A missing last part can't be noticed, because nothing says how many parts there were.
+fn missing_part_numbers(parts: &[PathBuf]) -> Vec<u32> {
+    let numbers: Vec<u32> = parts
+        .iter()
+        .filter_map(|p| split_part(&file_stem(p)).map(|(_, n)| n))
+        .collect();
+    let Some(&last) = numbers.iter().max() else {
+        return Vec::new();
+    };
+    (1..last).filter(|n| !numbers.contains(n)).collect()
 }
 
 /// Unpacks the pictures in a ZIP into `into`. Only the file name of each entry is kept, so no
@@ -292,6 +330,9 @@ mod tests {
             vec!["Rec - part 1.zip", "Rec - part 2.zip", "Rec - part 10.zip"]
         );
         assert_eq!(zip_parts(&dir.join("Rec.zip")), vec![dir.join("Rec.zip")]);
+        let found = zip_parts(&dir.join("Rec - part 1.zip"));
+        assert_eq!(missing_part_numbers(&found), (3..=9).collect::<Vec<u32>>());
+        assert!(missing_part_numbers(&[dir.join("Rec.zip")]).is_empty());
         assert_eq!(recording_name(&dir.join("Rec - part 2.zip")), "Rec");
     }
 
@@ -342,6 +383,7 @@ mod tests {
         }
         let pictures = load(&dir.join("2026-10-14 19-30-05 - VTT - part 2.zip")).unwrap();
         assert_eq!(pictures.name, "2026-10-14 19-30-05 - VTT");
+        assert!(pictures.missing_parts.is_empty());
         let names: Vec<String> = pictures.files.iter().map(|p| file_name(p)).collect();
         assert_eq!(
             names,

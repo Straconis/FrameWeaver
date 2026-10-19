@@ -33,8 +33,9 @@ Windows may show a SmartScreen warning because the app isn't code-signed yet. Ch
   - **Size:** same as the pictures, 720p, 1080p, 1440p, 4K, or custom.
   - **Aspect ratio:** 16:9, 4:3, 1:1, 9:16 vertical, or 21:9.
   - **Fit:** pictures can fit with bars, fill by cropping, or stretch.
-- **Frame rate and quality:** 24, 25, 30, 50 or 60 fps, and high, balanced or small file.
+- **Frame rate and quality:** 24, 25, 30, 50 or 60 fps, and high, balanced or small file. Balanced and small file render quickly; high takes longer for the most careful encoding.
 - **Progress and cancel** while it works, and one click to open the finished video.
+- **Clean up the output folder.** **Clean up…** deletes the videos in the output folder (MP4, WebM and GIF), after showing you the list and asking first. Other files and folders are never touched.
 - **Handles window resizing:** if the pictures change size part-way, as when you resize the window during a SnapLapse recording, every picture still gets its exact time.
 
 ## Platforms

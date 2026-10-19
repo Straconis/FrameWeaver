@@ -1260,7 +1260,7 @@ dependencies = [
 
 [[package]]
 name = "frameweaver"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "dirs",
  "eframe",
@@ -1271,6 +1271,7 @@ dependencies = [
  "rfd",
  "serde",
  "serde_json",
+ "tokio",
  "zip",
 ]
 
